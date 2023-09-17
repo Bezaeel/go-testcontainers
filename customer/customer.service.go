@@ -1,52 +1,36 @@
 package customer
 
 import (
-	"fmt"
-	"sync"
+	"go-testcontainers/database"
 )
 
-
 type CustomerService interface {
-	CreateCustomer(customer Customer) *Customer
-	AskTalabiAsync(chanResult chan CustomerResult, num int)
-	AskTalabiAsyncBackground(wg *sync.WaitGroup, num int)
+	CreateCustomer(customer Customer) (*Customer, error)
+	Details(id int) (*Customer, error)
 }
 
 type customerService struct {
-	customerRepo CustomerRepo
-}
-
-type CustomerResult struct {
-	Err error `json:"err"`
-	Sum int   `json:"sum"`
 }
 
 func NewCustomerService() CustomerService {
-	return &customerService{
-		customerRepo: NewCustomerRepo(),
-	}
+	return &customerService{}
 }
 
 // CreateCustomer implements CustomerService
-func (cs *customerService) CreateCustomer(customer Customer) *Customer {
-	result := cs.customerRepo.Create(&customer)
-	return result
-}
-
-// CreateCustomer implements CustomerServiceAsync
-func (cs *customerService) AskTalabiAsync(chanResult chan CustomerResult, num int) {
-	result := CustomerResult{
-		Err: nil,
-		Sum: num * 2,
+func (cs *customerService) CreateCustomer(customer Customer) (*Customer, error) {
+	err := database.DbContext.Create(&customer)
+	if err.Error != nil {
+		return nil, err.Error
 	}
-	chanResult <- result
-	close(chanResult)
+	return &customer, nil
 }
 
-// CreateCustomer implements CustomerServiceAsync
-func (cs *customerService) AskTalabiAsyncBackground(wg *sync.WaitGroup, num int) {
-	wg.Add(1)
-	defer wg.Done()
-
-	fmt.Printf("sum::::%v", num*2)
+// CreateCustomer implements CustomerService
+func (cs *customerService) Details(id int) (*Customer, error) {
+	var result Customer
+	err := database.DbContext.First(&result, id)
+	if err.Error != nil {
+		return nil, err.Error
+	}
+	return &result, nil
 }

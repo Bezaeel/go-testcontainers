@@ -8,21 +8,21 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+var DbContext *gorm.DB
 
-func ConnectDatabase() {
-	// connect to db
-	host := ""
-	port := 5432 
-	user := ""
-	password := ""
-	dbname := ""
+type DbOptions struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	Name     string
+}
+
+func ConnectDatabase(opt DbOptions) {
 
 	postgresqlDbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
-
-	// db, err := sqlx.Connect("postgres", postgresqlDbInfo)
+		opt.Host, opt.Port, opt.User, opt.Password, opt.Name)
 
 	database, err := gorm.Open(postgres.Open(postgresqlDbInfo), &gorm.Config{})
 
@@ -30,5 +30,5 @@ func ConnectDatabase() {
 		panic("Failed to connect to database!")
 	}
 
-	DB = database
+	DbContext = database
 }

@@ -17,7 +17,13 @@ func NewCustomerRepo() CustomerRepo {
 
 // Create implements CustomerRepo
 func (cr *customerRepo) Create(customer *Customer) *Customer {
-	database.DB.Create(&customer)
-	fmt.Print(customer);
+	database.DbContext.Create(&customer)
+	fmt.Print(customer)
 	return customer
+}
+
+func (cr *customerRepo) Detail(id int) *Customer {
+	var customer Customer
+	database.DbContext.First(&customer, 1)
+	return &customer
 }

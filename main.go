@@ -1,7 +1,6 @@
 package main
 
 import (
-	"go-testcontainers/customer"
 	"go-testcontainers/database"
 	"go-testcontainers/utils"
 	"log"
@@ -11,16 +10,29 @@ import (
 	"github.com/pseidemann/finish"
 )
 
+var routes *gin.Engine
+
 func main() {
-	database.ConnectDatabase()
+	dbOptions := database.DbOptions{
+		Host:     "",
+		Port:     0,
+		User:     "",
+		Password: "",
+		Name:     "",
+	}
+	database.ConnectDatabase(dbOptions)
 	utils.Migrate()
 
-	routes := gin.New()
-	customer.NewCustomerController(routes)
+	routes = gin.New()
+
+	routes.Run()
+
+	Init()
 
 	srv := &http.Server{
-		Addr:    ":8000",
-		Handler: routes,
+		Addr:        ":8000",
+		Handler:     routes,
+		ReadTimeout: finish.DefaultTimeout,
 	}
 
 	fin := finish.New()

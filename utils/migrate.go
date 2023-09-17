@@ -7,7 +7,7 @@ import (
 )
 
 func Migrate() {
-	database.DB.AutoMigrate(&customer.Customer{})
+	database.DbContext.AutoMigrate(&customer.Customer{})
 	fmt.Println("👍 Migration complete")
 
 }
