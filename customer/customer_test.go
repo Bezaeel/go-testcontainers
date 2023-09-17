@@ -2,7 +2,6 @@ package customer
 
 import (
 	"context"
-	"fmt"
 	"go-testcontainers/database"
 	testutils "go-testcontainers/test-utils"
 	"testing"
@@ -23,7 +22,7 @@ func TestIntTestSuite(t *testing.T) {
 	suite.Run(t, &IntTestSuite{})
 }
 
-func (its *IntTestSuite) TestCreateCustomer() {
+func (its *IntTestSuite) TestCreateCustomer_ShouldReturnCustomer() {
 	var customer Customer
 	customer.Email = "talabi@mail.com"
 	customer.Name = "Talabi"
@@ -37,15 +36,17 @@ func (its *IntTestSuite) TestCreateCustomer() {
 func (its *IntTestSuite) SetupSuite() {
 	its.T().Log("setting up database")
 	ctx := context.Background()
-	_, err := testutils.CreateContainer(ctx)
+	container, err := testutils.CreatePgSQLContainer(ctx)
 	if err != nil {
-		its.FailNowf("failed to establish database connection", err.Error())
+		its.FailNowf("unable to start PgSQL container", err.Error())
 	}
 
-	postgresqlDbInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		"localhost", testutils.Pport, "", "", "mytest")
-	db, err := gorm.Open(postgres.Open(postgresqlDbInfo), &gorm.Config{})
+	connStr, err := container.ConnectionString(ctx, "sslmode=disable")
+	if err != nil {
+		its.FailNowf("unable to fetch connection string", err.Error())
+	}
+
+	db, err := gorm.Open(postgres.Open(connStr), &gorm.Config{})
 	if err != nil {
 		its.FailNowf("failed to establish database connection", err.Error())
 	}
@@ -90,7 +91,7 @@ func tearDownDatabase(its *IntTestSuite) {
 	if tx.Error != nil {
 		its.FailNowf("failed to drop table", tx.Error.Error())
 	}
-	
+
 	err := testutils.TearDown()
 	if err != nil {
 		its.FailNowf("unable to close database", err.Error())

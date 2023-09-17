@@ -7,62 +7,45 @@ import (
 	"time"
 
 	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"gorm.io/gorm"
 )
 
 const (
-	DbName     = ""
-	DbUser     = ""
-	DbPassword = ""
+	dbName     = "db123"
+	dbUser     = "user123"
+	dbPassword = "password123"
 )
 
-var Pport int
+var container *postgres.PostgresContainer
 
-var DbContext *gorm.DB
-var Container testcontainers.Container
-
-func CreateContainer(ctx context.Context) (testcontainers.Container, error) {
+func CreatePgSQLContainer(ctx context.Context) (*postgres.PostgresContainer, error) {
 	fmt.Println("creating db container")
 
-	var env = map[string]string{
-		"POSTGRES_PASSWORD": DbPassword,
-		"POSTGRES_USER":     DbUser,
-		"POSTGRES_DB":       DbName,
-	}
-	var port = "5432/tcp"
+	postgresContainer, err := postgres.RunContainer(ctx,
+		testcontainers.WithImage("docker.io/postgres:15.2-alpine"),
+		postgres.WithDatabase(dbName),
+		postgres.WithUsername(dbUser),
+		postgres.WithPassword(dbPassword),
+		testcontainers.WithWaitStrategy(
+			wait.ForLog("database system is ready to accept connections").
+				WithOccurrence(2).
+				WithStartupTimeout(5*time.Second)),
+	)
 
-	req := testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "postgres:14-alpine",
-			ExposedPorts: []string{port},
-			Env:          env,
-			WaitingFor:   wait.ForLog("database system is ready to accept connections"),
-		},
-		Started: true,
-	}
-	container, err := testcontainers.GenericContainer(ctx, req)
 	if err != nil {
-		return container, fmt.Errorf("failed to start container: %v", err)
+		return nil, fmt.Errorf("failed to create container: %v", err)
 	}
-
-	p, err := container.MappedPort(ctx, "5432")
-	Pport = p.Int()
-	if err != nil {
-		return container, fmt.Errorf("failed to get container external port: %v", err)
-	}
-
-	fmt.Println("postgres container ready and running at port: ", p.Port())
 
 	time.Sleep(time.Second)
 
-	Container = container
+	container = postgresContainer
 
-	return container, nil
+	return postgresContainer, nil
 }
 
 func TearDown() error {
 	fmt.Println("tearing down db container")
-	err := Container.Terminate(context.Background())
+	err := container.Terminate(context.Background())
 	return err
 }
